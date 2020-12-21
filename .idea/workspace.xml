@@ -2,11 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="22caba86-9c8d-4741-b3c7-8ce2b50804cc" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/Task#3.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Task#3.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/!.html" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/.gitirnore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/style.css" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,7 +65,7 @@
       <workItem from="1608301828224" duration="1612000" />
       <workItem from="1608454465280" duration="1059000" />
       <workItem from="1608470697055" duration="2118000" />
-      <workItem from="1608572680367" duration="2965000" />
+      <workItem from="1608572680367" duration="3524000" />
     </task>
     <task id="LOCAL-00001" summary="add task #1 and #2">
       <created>1608472507455</created>
