@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=devic-width, inital-scale=1" />
+    <title>Blog_Yandex</title>
+    <link rel="stylesheet" href="" />
+    <style>
+      h1:first-letter {
+        color: red; /* Красный цвет первой буквы */
+      }
+      abbr {
+        font-weight: bold;
+
+        color: #000080;
+      }
+    </style>
+  </head>
+  <body>
+    <header>Блог компании Яндекс.</header>
+    <hr />
+    <hr />
+    <main>
+      <h1>ЯНДЕКС.ПОЧТА: КАК МЫ ИЗМЕРЯЕМ СКОРОСТЬ ЗАГРУЗКИ И УЛУЧШАЕМ ЕЁ</h1>
+
+      <p>
+        Если ваш сайт медленно грузится, вы рискуете тем, что люди не оценят ни
+        то, какой он красивый, ни то, какой он удобный. Никому не понравится,
+        когда все тормозит. Мы регулярно добавляем в Яндекс.Почту новую
+        функциональность, иногда — исправляем ошибки, а это значит, у нас
+        постоянно появляются новый код и новая логика. Всё это напрямую влияет
+        на скорость работы интерфейса.
+      </p>
+      <section>
+        <h2>Что мы измеряем</h2>
+        <div>
+          <ul>
+            Этапы первой загрузки:
+            <li>подготовка;</li>
+            <li>
+              загрузка статики (<abbr title="HyperText Transfer Protocol"
+                >HTTP</abbr
+              >-запрос и парсинг);
+            </li>
+            <li>исполнение модулей;</li>
+            <li>инициализация базовых объектов;</li>
+            <li>отрисовка.</li>
+          </ul>
+          <ul>
+            Этапы отрисовки любой страницы:
+            <li>подготовка к запросу на сервер;</li>
+            <li>запрос данных с сервера;</li>
+            <li>шаблонизация;</li>
+            <li>обновление <abbr title="Document Object Model">DOM.</abbr></li>
+          </ul>
+        </div>
+        <p>
+          —<q>Ок, теперь у нас есть метрики, мы можем отправить их на сервер</q>
+          <em>- говорим мы</em>
+        </p>
+        <p>—<q>Что же дальше?</q> <em>- вопрошаете вы</em></p>
+        <p>—<q>А давай построим график!</q> <em>- отвечаем мы</em></p>
+        <p>—<q>А что будем считать?</q> <em>- уточняете вы</em></p>
+
+        <p>
+          Как вы знаете, медиана – это серединное, а не среднее значение в
+          выборке. Если у нас имеются числа 1, 2, 2, 3, 8, 10, 20, то медиана –
+          3, а среднее – 6,5. В общем случае медиана отлично показывает, сколько
+          грузится средний пользователь.
+        </p>
+
+        <p>
+          В случае ускорения или замедления медиана, конечно, изменится. Но она
+          не может рассказать, сколько пользователей ускорилось, а сколько
+          замедлилось.
+        </p>
+
+        <p>
+          <abbr title="Application Performance Index">APDEX</abbr> – метрика,
+          которая сразу говорит: хорошо или плохо. Метрика работает очень
+          просто. Мы выбираем временной интервал [0; t], такой, что если время
+          показа страницы попало в него, то пользователь счастлив. Берем еще
+          один интервал, (t; 4t] (в четыре раза больше первого), и считаем, что
+          если страница показана за это время, то пользователь в целом
+          удовлетворен скоростью работы, но уже не настолько счастлив. И
+          применяем формулу:
+        </p>
+
+        <p>
+          (кол-во счастливых пользователей + кол-во удовлетворенных / 2) /
+          (кол-во всех). Получается значение от нуля до единицы, которое,
+          видимо, лучше всего показывает, хорошо или плохо работает почта.
+        </p>
+      </section>
+      <section>
+      <h2>Как мы измеряем</h2>
+
+      <p>
+        Сейчас модуль обновления сам логирует все свои стадии, и можно легко
+        понять причину замедления: медленнее стал отвечать сервер либо слишком
+        долго выполняется JavaScript. Выглядит это примерно так:
+      </p>
+      <code>
+        <pre>
+this.timings['look-ma-im-start'] = Date.now();
+this.timings['look-ma-finish'] = Date.now();
+</pre
+        >
+      </code>
+      <p>
+        C помощью Date.now() мы получаем текущее время. Все тайминги собираются
+        и при отправке рассчитываются. На этапах разница между “end” и “start”
+        не считается, а все вычисления производятся в конце:
+      </p>
+      <code>
+        <pre>
+var totalTime = this.timings['look-ma-finish'] - this.timings['look-ma-im-start'];
+  </pre
+        >
+      </code>
+      <p>
+        И на сервер прилетают подобные записи: serverResponse=50&domUpdate=60
+      </p>
+      </section>
+      <section></section>
+      <h2>Как мы ускоряем</h2>
+
+      <div>
+        Чтобы снизить время загрузки почты при выходе новых версий, мы уже
+        делаем следующее:
+        <ul>
+          <li>включаем gzip;</li>
+          <li>выставляем заголовки кэширования;</li>
+          <li>
+            фризим <abbr title="Cascading Style Sheets">CSS</abbr>,
+            <abbr title="Java Script">JS</abbr>, шаблоны и картинки;
+          </li>
+          <li>
+            используем <abbr title="(Content Delivery Network">CDN</abbr>;
+          </li>
+        </ul>
+      </div>
+      <p>
+        Мы подумали:
+        <q
+          >А что если хранить где-то старую версию файлов, а при выходе новой
+          передавать только diff между ней и той, которая сохранена у
+          пользователя?</q
+        >
+        В браузере же останется просто наложить патч на клиенте.
+      </p>
+
+      <p>
+        На самое деле эта идея не нова. Уже существуют стандарты для
+        <abbr title="HyperText Transfer Protocol">HTTP</abbr> — например,
+        <abbr title="Request for Comments ">RFC</abbr>
+        3229 «Delta encoding in
+        <abbr title="HyperText Transfer Protocol">HTTP</abbr>» и «Google
+        <abbr title="Secure Digital High Capacity">SDHC</abbr>», — но по разным
+        причинам они не получили должного распространения в браузерах и на
+        серверах.
+      </p>
+
+      <div>
+        <p>
+          Мы же решили сделать свой аналог на
+          <abbr title="Java Script">JS</abbr>. Чтобы реализовать этот метод
+          обновления, начали искать реализации diff на
+          <abbr title="Java Script">JS</abbr>. На популярных хостингах кода
+          нашли библиотеки:
+        </p>
+        <ul>
+          <li>VCDiff</li>
+          <li>google-diff-patch-match</li>
+        </ul>
+      </div>
+      <p>Для окончательного выбора библиотеки нам нужно сравнить:</p>
+      <table border="1">
+        <tr>
+          <th>Библиотека</th>
+          <th><abbr title="Internet Exproler">IE</abbr> 9</th>
+          <th>Opera 12</th>
+        </tr>
+        <tr>
+          <td>vcdiff</td>
+          <td>8</td>
+          <td>5</td>
+        </tr>
+        <tr>
+          <td>google diff</td>
+          <td>1363</td>
+          <td>76</td>
+        </tr>
+      </table>
+      <p>
+        После того как мы определились с библиотекой для диффа, нужно
+        определиться с тем, где и как хранить статику на клиенте.
+      </p>
+
+      <div>
+        Формат файла с патчами для проекта выглядит так:
+        <pre>
+{
+  "k": "jane.css",
+  "p": [patch],
+  "s": 4554
+},
+{
+  "k": "jane.css",
+  "p": [patch],
+  "s": 4554
+}
+</pre
+        >
+      </div>
+      <p>
+        То есть это обычный массив из объектов. Каждый объект — отдельный
+        ресурс. У каждого объекта есть три свойства. k — названия ключа в
+        localStorage для этого ресурса. p — патч для ресурса, который
+        сгенерировал vcdiff. s — чексумма для ресурса актуальной версии, чтобы
+        потом можно было проверить правильность наложения патча на клиенте.
+        Чексумма вычисляется по алгоритму Флетчера.
+      </p>
+      <p>
+        дано
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle \varepsilon ,\;x_{0}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <mi>ε<!-- ε --></mi>
+                    <mo>,</mo>
+                    <mspace width="thickmathspace"></mspace>
+                    <msub>
+                      <mi>x</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mn>0</mn>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle \varepsilon ,\;x_{0}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/841b174ecad9b3a8f10e6e84c25342534068aa1f"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 5.147ex; height: 2.009ex"
+            alt="\varepsilon ,\;x_{0}" /></span
+        ><br />
+        инициализировать
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle C_{0}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>C</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mn>0</mn>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle C_{0}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/23da38e31194b9ae0524ec18c8489693f3be5389"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 2.716ex; height: 2.509ex"
+            alt="C_{0}" /></span
+        ><br />
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle k=0}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <mi>k</mi>
+                    <mo>=</mo>
+                    <mn>0</mn>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle k=0}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/6307c8a99dad7d0bcb712352ae0a748bd99a038b"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.338ex; width: 5.472ex; height: 2.176ex"
+            alt="k = 0" /></span
+        ><br />
+        <b>while</b>
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle ||\nabla f_{k}||>\varepsilon }"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <mrow class="MJX-TeXAtom-ORD">
+                      <mo stretchy="false">|</mo>
+                    </mrow>
+                    <mrow class="MJX-TeXAtom-ORD">
+                      <mo stretchy="false">|</mo>
+                    </mrow>
+                    <mi mathvariant="normal">∇<!-- ∇ --></mi>
+                    <msub>
+                      <mi>f</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <mrow class="MJX-TeXAtom-ORD">
+                      <mo stretchy="false">|</mo>
+                    </mrow>
+                    <mrow class="MJX-TeXAtom-ORD">
+                      <mo stretchy="false">|</mo>
+                    </mrow>
+                    <mo>&gt;</mo>
+                    <mi>ε<!-- ε --></mi>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle ||\nabla f_{k}||&gt;\varepsilon }</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/8e85ce0deb65169ea7c6d4b0603037c100fe5d0d"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.838ex; width: 10.933ex; height: 2.843ex"
+            alt="||\nabla f_{k}||>\varepsilon " /></span
+        ><br />
+            найти направление
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle p_{k}=-C_{k}\nabla f_{k}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>p</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <mo>=</mo>
+                    <mo>−<!-- − --></mo>
+                    <msub>
+                      <mi>C</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <mi mathvariant="normal">∇<!-- ∇ --></mi>
+                    <msub>
+                      <mi>f</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle p_{k}=-C_{k}\nabla f_{k}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/e749b989ed667b9416a5503dfa902901aecab451"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="
+              vertical-align: -0.671ex;
+              margin-left: -0.089ex;
+              width: 14.169ex;
+              height: 2.509ex;
+            "
+            alt="p_{k}=-C_{k}\nabla f_{k}" /></span
+        ><br />
+            вычислить
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle x_{k+1}=x_{k}+\alpha _{k}p_{k}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>x</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                        <mo>+</mo>
+                        <mn>1</mn>
+                      </mrow>
+                    </msub>
+                    <mo>=</mo>
+                    <msub>
+                      <mi>x</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <mo>+</mo>
+                    <msub>
+                      <mi>α<!-- α --></mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <msub>
+                      <mi>p</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle x_{k+1}=x_{k}+\alpha _{k}p_{k}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/272c45d501ed6ee3f1772286189acb74f9660f69"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 17.711ex; height: 2.343ex"
+            alt="x_{{k+1}}=x_{k}+\alpha _{k}p_{k}" /></span
+        >,
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle \alpha _{k}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>α<!-- α --></mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle \alpha _{k}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/717fd9a74d91add9739563c16ac357ce33924860"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 2.576ex; height: 2.009ex"
+            alt="\alpha _{k}"
+        /></span>
+        удовлетворяет условиям Вольфе <br />
+            обозначить
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle s_{k}=x_{k+1}-x_{k}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>s</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <mo>=</mo>
+                    <msub>
+                      <mi>x</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                        <mo>+</mo>
+                        <mn>1</mn>
+                      </mrow>
+                    </msub>
+                    <mo>−<!-- − --></mo>
+                    <msub>
+                      <mi>x</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle s_{k}=x_{k+1}-x_{k}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/fbdd7312f50e7d8bcf5737918fbf4c7612e2f515"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 15.055ex; height: 2.343ex"
+            alt="s_{k}=x_{{k+1}}-x_{{k}}"
+        /></span>
+        и
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle y_{k}=\nabla f_{k+1}-\nabla f_{k}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>y</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                    <mo>=</mo>
+                    <mi mathvariant="normal">∇<!-- ∇ --></mi>
+                    <msub>
+                      <mi>f</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                        <mo>+</mo>
+                        <mn>1</mn>
+                      </mrow>
+                    </msub>
+                    <mo>−<!-- − --></mo>
+                    <mi mathvariant="normal">∇<!-- ∇ --></mi>
+                    <msub>
+                      <mi>f</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle y_{k}=\nabla f_{k+1}-\nabla f_{k}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/0b09f7f989145bf135c24b20226503f6dbb00578"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 18.595ex; height: 2.509ex"
+            alt="y_{k}=\nabla f_{{k+1}}-\nabla f_{k}" /></span
+        ><br />
+            вычислить
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle C_{k+1}}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <msub>
+                      <mi>C</mi>
+                      <mrow class="MJX-TeXAtom-ORD">
+                        <mi>k</mi>
+                        <mo>+</mo>
+                        <mn>1</mn>
+                      </mrow>
+                    </msub>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle C_{k+1}}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/4ab76165ee52a0638cb2ff277eecc1d5daadcaac"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.671ex; width: 4.851ex; height: 2.509ex"
+            alt="C_{{k+1}}" /></span
+        ><br />
+           
+        <span class="mwe-math-element"
+          ><span
+            class="mwe-math-mathml-inline mwe-math-mathml-a11y"
+            style="display: none"
+            ><math
+              xmlns="http://www.w3.org/1998/Math/MathML"
+              alttext="{\displaystyle k=k+1}"
+            >
+              <semantics>
+                <mrow class="MJX-TeXAtom-ORD">
+                  <mstyle displaystyle="true" scriptlevel="0">
+                    <mi>k</mi>
+                    <mo>=</mo>
+                    <mi>k</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                  </mstyle>
+                </mrow>
+                <annotation encoding="application/x-tex"
+                  >{\displaystyle k=k+1}</annotation
+                >
+              </semantics>
+            </math></span
+          ><img
+            src="https://wikimedia.org/api/rest_v1/media/math/render/svg/7daac515060e17c7b2b5ef6ea21ebe7fba066a93"
+            class="mwe-math-fallback-image-inline"
+            aria-hidden="true"
+            style="vertical-align: -0.505ex; width: 9.524ex; height: 2.343ex"
+            alt="k=k+1" /></span
+        ><br />
+        <b>end</b><br />
+      </p>
+
+      <dl>
+        <dt>Алгоритм Бройдена — Флетчера — Гольдфарба — Шанно (BFGS)</dt>
+        <dd>
+          — итерационный метод численной оптимизации, предназначенный для
+          нахождения локального максимума/минимума нелинейного функционала без
+          ограничений.
+        </dd>
+      </dl>
+
+      <dl>
+        Почему именно алгоритм Флетчера, а не другие популярные алгоритмы вроде:
+        <dt>CRC16/32</dt>
+        <dd>
+          - алгоритм нахождения контрольной суммы, предназначенный для проверки
+          целостности данных.
+        </dd>
+        <dt>md5</dt>
+        <dd>
+          - 128-битный алгоритм хеширования. Предназначен для создания
+          «отпечатков» или дайджестов сообщения произвольной длины и последующей
+          проверки их подлинности. Потому что он быстрый, компактный и легок в
+          реализации.
+        </dd>
+      </dl>
+      </section>
+      <section>
+      <h2>Итог</h2>
+
+      <div>
+        <p>
+          Фактически мы экономим 80-90% трафика. Размер загружаемой статитки в
+          байтах:
+        </p>
+
+        <table border="1">
+          <tr>
+            <th>Релиз</th>
+            <th>С патчем</th>
+            <th>Без патча</th>
+          </tr>
+          <tr>
+            <td>7.7.20</td>
+            <td>397</td>
+            <td>174 549</td>
+          </tr>
+          <tr>
+            <td>7.7.21</td>
+            <td>383</td>
+            <td>53 995</td>
+          </tr>
+          <tr>
+            <td>7.7.22</td>
+            <td>483</td>
+            <td>3 995</td>
+          </tr>
+        </table>
+      </div>
+      <div>
+        <p>Автор: @doochik</p>
+        <p>С++ разработик</p>
+        <p>
+          Электронная почта:
+          <a href="mailto:doochik@yandex-team.ru">doochik@yandex-team.ru</a>
+        </p>
+        <p>Компания: Яндекс</p>
+      </div>
+      <hr />
+      <form>
+        <p>Комментарии (3):</p>
+
+        <p>
+          <label
+            >- Mogaika
+            <a href="mailto:mogaika@yandex-team.ru">(mogaika@yandex-team.ru)</a>
+            <time datetime="2014-11-30T17:05"
+              >30 ноября 2014 в 17:05</time
+            ></label
+          >
+          <br />
+          <label>
+            <textarea cols="40">
+А можете привести сравнение, на сколько быстрее грузится lite версия? </textarea
+            >
+          </label>
+          <br />
+          <label
+            >- JIguse
+            <a href="mailto:mrawesome@yandex.ru">(mrawesome@yandex.ru)</a>
+            <time datetime="2014-11-29T21:30">29 ноября 2014 в 21:30</time>
+          </label>
+          <br />
+
+          <label>
+            <textarea cols="40">
+Спасибо за статью, познавательно. Здорово, что Яндекс делится некоторыми
+подробностями о внутренней работе сервисов.</textarea
+            >
+          </label>
+          <br />
+          <label
+            >- Brister
+            <a href="mailto:brist89@yandex-team.ru">(brist89@yandex-team.ru)</a>
+            <time datetime="2014-11-24T13:13"
+              >24 ноября 2014 в 13:13</time
+            ></label
+          >
+          <br />
+          <label>
+            <textarea cols="40">
+(кол-во счастливых пользователей + кол-во удовлетворенных / 2) / (кол-во всех).
+Получается значение от нуля до единицы, которое, видимо, лучше всего показывает,
+хорошо или плохо работает почта.
+
+  наверное все-таки от 0.5 до 1</textarea
+            >
+          </label>
+          <br />
+          <label
+            >- alexeimois <a href="mailto:test@yandex.ru">(test@yandex.ru)</a>
+            <time datetime="2014-11-22T17:35"
+              >22 ноября 2014 в 17:35</time
+            ></label
+          >
+          <br />
+          <label>
+            <textarea cols="40">
+Мы измеряем скорость загрузки с помощью Яндекс.Метрики:
+<a>help.yandex.ru/metrika/reports/monitoring_timing.xml"</a>
+        </textarea
+            >
+          </label>
+        </p>
+      </form>
+      </section>
+    </main>
+    <hr />
+    <hr />
+    <footer>
+      <div>
+        <p>© Яндекс, <a href="mailto:help@yandex.ru">help@yandex.ru</a>,</p>
+        <address>Хохрякова, 10</address>
+      </div>
+    </footer>
+  </body>
+</html>
