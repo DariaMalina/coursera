@@ -1,11 +1,11 @@
 // Встроенный в Node.JS модуль для проверок
-var assert = require('assert');
+let assert = require('assert');
 
 // Подключаем свою функцию
-var lib = require('./index.js');
+let lib = require('./index.js');
 
 // Коллекция данных
-var friends = [
+let friends = [
     {
         name: 'Сэм',
         gender: 'Мужской',
@@ -51,7 +51,7 @@ var friends = [
 ];
 
 // Выполняем выборку и фильтрацию с помощью нашего конструктора
-var result = lib.query(
+let result = lib.query(
     friends,
     lib.select('name', 'gender', 'email'),
     lib.filterIn('favoriteFruit', ['Яблоко', 'Картофель'])
