@@ -9,19 +9,28 @@ function query(collection) {
     let copyCollection = [].slice.call(arguments);
     let copyArr = makeCopyOfArray(copyCollection);
     let copyArrayCheck = makeCopyOfArray(copyCollection)// нужен для дальнейшей проверки с помощью фильтр, так как не будет никак изменяться
-    for (let i = 1; i < copyCollection.length; i++) {
-        let prevArray = copyCollection[i];
-        if (prevArray[0] === 'select') {
-          copyArr=transformArray(copyArr,prevArray[1])//не забыть вернуть значение
+    if (copyCollection.length === 1) {
+        return collection
+    } else {
+        let prevArray = [];
+        for (let i = 1; i < copyCollection.length; i++) {
+            prevArray.push(copyCollection[i]);
+        }
+        let massFilter = prevArray.filter(el => el[0] === 'filterIn')
+        let massSelect = prevArray.filter(el => el[0] === 'select')
+        prevArray = massFilter.concat(massSelect)
+        for (let i = 0; i < prevArray.length; i++) {
+            let elem = prevArray[i]
+            if (elem[0] === 'select') {
+                copyArr = transformArray(copyArr, elem[1])//не забыть вернуть значение
+            }
+            if (elem[0] === 'filterIn') {
+                copyArr = filterArray(copyArr, copyArrayCheck, elem[1], elem[2])//не забыть вернуть значение
+            }
 
         }
-        if (prevArray[0] === 'filterIn') {
-            copyArr=filterArray(copyArr, copyArrayCheck,prevArray[1],prevArray[2])//не забыть вернуть значение
-
-        }
-
+        return copyArr
     }
-    return copyArr
 }
 
 /**
@@ -40,6 +49,7 @@ function filterIn(property, values) {
     let fields = [].slice.call(arguments);
     return ['filterIn', property, values];
 }
+
 function makeCopyOfArray(array) {
     let copyArray = []
     for (let i = 0; i < array[0].length; i++) {
@@ -47,20 +57,27 @@ function makeCopyOfArray(array) {
     }
     return copyArray
 }
-function transformArray(arr,fields) {//работает с select
+
+function transformArray(arr, fields) {//работает с select
     let keyList = fields//тут мы получаем массив со списком ключей, которые надо оставить
-    return arr.map((curr)=> {
+    return arr.map((curr) => {
+        let elemMass = arr[0]
         for (let i = 0; i < keyList.length; i++) {
-            let obj={}// новый пустой объект, куда мы будет добавлять пару ключ значение, которая нам подходит
+            let obj = {}// новый пустой объект, куда мы будет добавлять пару ключ значение, которая нам подходит
             for (let i = 0; i < keyList.length; i++) {
-                let keys=keyList[i];
-                obj[keys]=curr[keys]//на данной строчке мы добавляем пару в объект
+                let keys = keyList[i];
+                if (elemMass.hasOwnProperty(keys)) {
+                    obj[keys] = curr[keys]//на данной строчке мы добавляем пару в объект
+                }
+
             }
-            return obj}
+            return obj
+        }
     })
 
 }
-function filterArray(arr, checkArray,property, values) {
+
+function filterArray(arr, checkArray, property, values) {
     let key = property;
     let keyValue = values;
     let doneFavFruit = checkArray.filter(function (el) {
@@ -70,13 +87,15 @@ function filterArray(arr, checkArray,property, values) {
             }
         }return false
     })
-    let results = []
-    for (let i = 0; i < doneFavFruit.length; i++) {
-        results.push(arr.filter(el=>
-            doneFavFruit[i].name === el.name
-        ))
-    }
-    return results.flat()
+    return arr.filter(function (el) {
+        for (let i = 0; i < doneFavFruit.length; i++) {
+            if (doneFavFruit[i].name === el.name) {
+                return true
+            }
+        }
+        return false
+    })
+
 }
 
 module.exports = {
