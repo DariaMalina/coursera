@@ -6,22 +6,18 @@ module.exports = {
      * @param {Function} handler
      */
     on: function (event, subscriber, handler) {
-        if (subscriber === undefined) {
+        if (!this.eventList.hasOwnProperty(event)) {
+            this.eventList[event] = [{
+                subscriber: subscriber,
+                handler: handler.bind(subscriber)
+            }]
             return this
         } else {
-            if (!this.eventList.hasOwnProperty(event)) {
-                this.eventList[event] = [{
-                    subscriber: subscriber,
-                    handler: handler.bind(subscriber)
-                }]
-                return this
-            } else {
-                this.eventList[event].push({
-                    subscriber: subscriber,
-                    handler: handler.bind(subscriber)
-                })
-                return this
-            }
+            this.eventList[event].push({
+                subscriber,
+                handler: handler.bind(subscriber)
+            })
+            return this
         }
     },
 
@@ -31,11 +27,9 @@ module.exports = {
      */
     off: function (event, subscriber) {
         if (this.eventList.hasOwnProperty(event)) {
-            let mass = this.eventList[event]
-            this.eventList[event] = mass.filter(el => el.subscriber !== subscriber)
+            this.eventList[event] = this.eventList[event].filter(el => el.subscriber !== subscriber)
             return this
         }
-        return this
     },
 
     /**
@@ -43,12 +37,8 @@ module.exports = {
      */
     emit: function (event) {
         if (this.eventList.hasOwnProperty(event)) {
-            let mass = this.eventList[event]
-            for (let i = 0; i < mass.length; i++) {
-                mass[i].handler()
-            }
+            this.eventList[event].forEach(el => el.handler())
             return this
         }
-        return this
     }
 };
