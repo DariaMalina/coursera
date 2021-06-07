@@ -11,16 +11,14 @@ module.exports = {
                 subscriber: subscriber,
                 handler: handler.bind(subscriber)
             }]
-            return this
         } else {
             this.eventList[event].push({
                 subscriber,
                 handler: handler.bind(subscriber)
             })
-            return this
         }
+        return this
     },
-
     /**
      * @param {String} event
      * @param {Object} subscriber
@@ -28,17 +26,16 @@ module.exports = {
     off: function (event, subscriber) {
         if (this.eventList.hasOwnProperty(event)) {
             this.eventList[event] = this.eventList[event].filter(el => el.subscriber !== subscriber)
-            return this
         }
+        return this
     },
-
     /**
      * @param {String} event
      */
     emit: function (event) {
         if (this.eventList.hasOwnProperty(event)) {
             this.eventList[event].forEach(el => el.handler())
-            return this
         }
+        return this
     }
 };
