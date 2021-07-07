@@ -2,34 +2,35 @@
  * @param {Function[]} operations
  * @param {Function} callback
  */
-module.exports = (operations, callback) => {
-    if (operations.length < 1) {
-        return callback(operations)
-    } else {
-
-        function promise(ar) {
-            let l = new Promise((resolve, reject) => {
-                let array = []
-                let counter = 0
-
-                function pushArr(value, i) {
-                    array[i] = value;
-                    counter += 1
-                    if (counter === operations.length) {
-                        resolve(array)
-                    }
+function promisify(fun) {
+    return function (...args) {
+        return new Promise((resolve, reject) => {
+            function next(err, result) {
+                if (err === null) {
+                    resolve(result)
+                } else {
+                    return reject(err)
                 }
+            }
 
-                for (let i = 0; i < operations.length; i++) {
-                    operations[i].then(val => {
-                        pushArr(val, i)
-                    }).catch(err => reject(err))
-                }
-            })
-            return l.then(data => callback(null, data)).catch(err => callback(err))
-        }
-
-        return promise(operations)
+            args.push(next);
+            fun(...args)
+        })
     }
+}
+
+function parallelExecution(arrayOfOperations, callback) {
+    let arr = []
+    for (let i = 0; i < arrayOfOperations.length; i++) {
+        let dateCallFunction = promisify(arrayOfOperations[i])
+        arr.push(dateCallFunction())
+    }
+    return Promise.all(arr).then(data => callback(null, data)).catch(err => callback(err))
+}
+module.exports = (operations, callback) => {
+    if (operations.length >= 1) {
+        return parallelExecution(operations, callback)
+    }
+    return callback(null, [])
 };
 //каждый эелмент оператион это функция некст
